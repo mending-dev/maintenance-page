@@ -1,10 +1,13 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import siteConfig from '../config/site.config.js'
 import locales from '../config/locales/index.js'
 
 const I18nContext = createContext(null)
 
 const { fallbackLanguage, persist, storageKey } = siteConfig.i18n
+
+// Must match --duration-lang in index.css (fade duration of .lang-fade)
+const FADE_MS = 100
 
 const languages = Object.entries(locales).map(([code, locale]) => ({
   code,
@@ -47,20 +50,55 @@ function interpolate(value, vars) {
   return value.replace(/\{(\w+)\}/g, (_, key) => vars[key] ?? `{${key}}`)
 }
 
+/** Toggles the fade state used by the .lang-fade elements (see index.css). */
+function setSwitching(active) {
+  if (active) document.documentElement.dataset.switching = 'true'
+  else delete document.documentElement.dataset.switching
+}
+
 export function I18nProvider({ children }) {
   const [language, setLanguageState] = useState(detectLanguage)
+  const pendingSwitch = useRef(null)
 
-  const setLanguage = useCallback((code) => {
-    if (!locales[code]) return
-    setLanguageState(code)
-    if (persist) {
-      try {
-        localStorage.setItem(storageKey, code)
-      } catch {
-        // ignore
+  // Clean up a running switch if the provider unmounts
+  useEffect(() => () => clearTimeout(pendingSwitch.current), [])
+
+  /**
+   * Smooth language switch:
+   * 1) fade the texts out, 2) swap the language while they are invisible,
+   * 3) fade the new texts in.
+   */
+  const setLanguage = useCallback(
+    (code) => {
+      if (!locales[code]) return
+
+      clearTimeout(pendingSwitch.current)
+
+      // Clicking the current language while a switch is pending cancels that switch
+      if (code === language) {
+        setSwitching(false)
+        return
       }
-    }
-  }, [])
+
+      setSwitching(true)
+
+      pendingSwitch.current = setTimeout(() => {
+        setLanguageState(code)
+
+        if (persist) {
+          try {
+            localStorage.setItem(storageKey, code)
+          } catch {
+            // ignore
+          }
+        }
+
+        // Wait two frames so React has rendered the new texts before fading in
+        requestAnimationFrame(() => requestAnimationFrame(() => setSwitching(false)))
+      }, FADE_MS)
+    },
+    [language],
+  )
 
   /**
    * Translates a key. Lookup order: current language -> fallback language -> key itself.

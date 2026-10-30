@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import siteConfig from '../config/site.config.js'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 
-/** Rotating "loading screen" style tips. */
+/** Rotating "loading screen" style tips. Hidden on short viewports ("short" variant). */
 export default function Tips() {
   const { t } = useI18n()
   const { enabled, intervalMs } = siteConfig.tips
@@ -20,9 +20,12 @@ export default function Tips() {
   if (!enabled || count === 0) return null
 
   return (
-    // min-h in em reserves two lines so the layout does not jump between tips
-    <p key={index} className="tip-fade min-h-[3.5em] max-w-xl text-body leading-relaxed text-secondary">
-      <span className="text-primary">{t('tips.label')}:</span> {items[index % count]}
-    </p>
+    // The wrapper handles entrance + hiding, the keyed paragraph fades on every tip change
+    <div className="reveal max-w-xl [--reveal-delay:700ms] short:hidden">
+      {/* min-h in em reserves two lines so the layout does not jump between tips */}
+      <p key={index} className="tip-fade lang-fade min-h-[3.5em] text-body leading-relaxed text-secondary">
+        <span className="text-primary">{t('tips.label')}:</span> {items[index % count]}
+      </p>
+    </div>
   )
 }

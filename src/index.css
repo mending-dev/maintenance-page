@@ -1,6 +1,14 @@
 @import "tailwindcss";
 
 /*
+ * Height based variants: on short viewports the layout drops optional content
+ * (first the tips, then the description) so everything fits on one screen.
+ * Usage: "short:hidden", "tiny:hidden", "short:text-title" ...
+ */
+@custom-variant short (@media (max-height: 880px));
+@custom-variant tiny (@media (max-height: 740px));
+
+/*
  * Map Tailwind tokens to the runtime CSS variables set in lib/theme.js.
  * "inline" makes utilities reference the variables directly.
  */
@@ -35,6 +43,31 @@
 }
 
 @layer base {
+  :root {
+    /* Shared motion tokens: change them here to tune the feel of the whole page */
+    --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+    --duration-fast: 180ms;
+    --duration-reveal: 700ms;
+
+    /* Language switch fade (must match FADE_MS in I18nProvider.jsx) */
+    --duration-lang: 100ms;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    /* Hide the scrollbar but keep scrolling (Firefox + legacy Edge) */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  /* Hide the scrollbar in Chrome, Safari and other WebKit/Blink browsers */
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+
   html,
   body,
   #root {
@@ -63,6 +96,18 @@
 }
 
 @layer components {
+  /*
+   * Removes the empty font space above the capital letters, so the visible
+   * text starts exactly at the top edge of the element (like text-box-trim).
+   * The line box is set to the font's content area (ascent + descent), which
+   * means there is no extra half-leading and the offset is ascent - cap height.
+   * The bottom is intentionally not trimmed, so descenders (g, p, y) keep their room.
+   */
+  .trim-cap-top {
+    line-height: calc(var(--theme-font-ascent, 1) + var(--theme-font-descent, 0.2));
+    margin-top: calc(-1em * (var(--theme-font-ascent, 1) - var(--theme-font-cap, 0.7)));
+  }
+
   /* ---------- Pixel box: notched 1-step border, no border-radius ---------- */
   .pixel-box {
     --b: var(--theme-pixel);
@@ -75,6 +120,10 @@
   }
 
   /* ---------- Pixel button: Minecraft-like bevel ---------- */
+  /*
+   * The box-shadow always has 7 layers (6 for the bevel + 1 glow), so the browser
+   * can interpolate smoothly between rest, hover and active.
+   */
   .pixel-btn {
     --b: var(--theme-pixel);
     --btn-light: color-mix(in srgb, var(--btn-bg) 60%, white);
@@ -98,24 +147,39 @@
       calc(var(--b) * -1) 0 0 0 var(--btn-edge),
       var(--b) 0 0 0 var(--btn-edge),
       inset var(--b) var(--b) 0 0 var(--btn-light),
-      inset calc(var(--b) * -1) calc(var(--b) * -1) 0 0 var(--btn-shade);
-    transition: transform 80ms steps(2), filter 80ms steps(2);
+      inset calc(var(--b) * -1) calc(var(--b) * -1) 0 0 var(--btn-shade),
+      0 0 0 0 transparent;
+    transition:
+      transform var(--duration-fast) var(--ease-smooth),
+      filter var(--duration-fast) ease-out,
+      box-shadow var(--duration-fast) ease-out;
   }
 
   .pixel-btn:hover {
-    filter: brightness(1.1);
+    filter: brightness(1.08);
     transform: translateY(calc(var(--b) * -1));
+    box-shadow:
+      0 calc(var(--b) * -1) 0 0 var(--btn-edge),
+      0 var(--b) 0 0 var(--btn-edge),
+      calc(var(--b) * -1) 0 0 0 var(--btn-edge),
+      var(--b) 0 0 0 var(--btn-edge),
+      inset var(--b) var(--b) 0 0 var(--btn-light),
+      inset calc(var(--b) * -1) calc(var(--b) * -1) 0 0 var(--btn-shade),
+      0 calc(var(--b) * 2) 24px -4px color-mix(in srgb, var(--btn-bg) 45%, transparent);
   }
 
   .pixel-btn:active {
     transform: translateY(var(--b));
+    /* Pressing reacts faster than hovering */
+    transition-duration: 60ms;
     box-shadow:
       0 calc(var(--b) * -1) 0 0 var(--btn-edge),
       0 var(--b) 0 0 var(--btn-edge),
       calc(var(--b) * -1) 0 0 0 var(--btn-edge),
       var(--b) 0 0 0 var(--btn-edge),
       inset var(--b) var(--b) 0 0 var(--btn-shade),
-      inset calc(var(--b) * -1) calc(var(--b) * -1) 0 0 var(--btn-light);
+      inset calc(var(--b) * -1) calc(var(--b) * -1) 0 0 var(--btn-light),
+      0 0 0 0 transparent;
   }
 
   .pixel-btn:focus-visible {
@@ -142,10 +206,17 @@
 
   /* ---------- Two-tone pixel title with hard drop shadow ---------- */
   .pixel-title {
+    /*
+     * The darker lower part starts at 50% of the box plus this shift.
+     * 2px = two screen pixels lower; use e.g. 0.2em for two font pixels.
+     */
+    --split-shift: 2px;
+    --split: calc(50% + var(--split-shift));
+
     background: linear-gradient(
       180deg,
-      var(--theme-primary) 50%,
-      var(--theme-primary-dark) 50%
+      var(--theme-primary) var(--split),
+      var(--theme-primary-dark) var(--split)
     );
     -webkit-background-clip: text;
     background-clip: text;
@@ -201,6 +272,34 @@
     animation-iteration-count: infinite;
   }
 
+  /* ---------- Entrance animations ---------- */
+  /*
+   * Elements slide up and fade in on load. Set the stagger per element with
+   * a Tailwind arbitrary property, e.g. "reveal [--reveal-delay:300ms]".
+   * "backwards" (not "both") keeps the element free for hover/transition
+   * styles after the animation has finished.
+   */
+  .reveal {
+    animation: reveal var(--duration-reveal) var(--ease-smooth) var(--reveal-delay, 0ms) backwards;
+  }
+
+  .fade-in {
+    animation: fade-in 1.4s ease-out backwards;
+  }
+
+  /* ---------- Language switch: texts fade out, swap, fade in ---------- */
+  /* The switch is triggered by I18nProvider via <html data-switching="true"> */
+  .lang-fade {
+    transition:
+      opacity var(--duration-lang) ease-out,
+      transform var(--duration-lang) var(--ease-smooth);
+  }
+
+  :root[data-switching='true'] .lang-fade {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
   /* ---------- Animations ---------- */
   .animate-pixel-bob {
     animation: pixel-bob 2.4s steps(4) infinite;
@@ -211,17 +310,39 @@
   }
 
   .tip-fade {
-    animation: pixel-fade 0.5s steps(4) both;
+    animation: fade-in 0.6s ease-out backwards;
   }
 }
 
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Bobbing is symmetric around the resting position (+/- one pixel unit),
+   so the logo stays centered between the elements above and below. */
 @keyframes pixel-bob {
   0%,
   100% {
-    transform: translateY(0);
+    transform: translateY(calc(var(--theme-pixel) * -1));
   }
   50% {
-    transform: translateY(calc(var(--theme-pixel) * -2));
+    transform: translateY(var(--theme-pixel));
   }
 }
 
@@ -233,15 +354,6 @@
   50%,
   100% {
     opacity: 0.3;
-  }
-}
-
-@keyframes pixel-fade {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
   }
 }
 
@@ -261,6 +373,12 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .reveal,
+  .fade-in,
   .animate-pixel-bob,
   .animate-pixel-blink,
   .pixel-particle,
@@ -271,5 +389,19 @@
 
   .pixel-particle {
     opacity: 0.2;
+  }
+
+  /* No fade on language switch, the texts simply change */
+  .lang-fade {
+    transition: none;
+  }
+
+  :root[data-switching='true'] .lang-fade {
+    opacity: 1;
+    transform: none;
+  }
+
+  .pixel-btn {
+    transition: none;
   }
 }

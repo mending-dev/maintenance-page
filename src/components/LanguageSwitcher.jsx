@@ -17,7 +17,8 @@ export default function LanguageSwitcher() {
             title={name}
             aria-pressed={active}
             onClick={() => setLanguage(code)}
-            className={`pixel-box cursor-pointer px-3 py-1 text-body transition-colors ${
+            // Smooth color change plus a small lift on hover and a press on click
+            className={`pixel-box cursor-pointer px-3 py-1 text-body transition-[background-color,color,translate] duration-200 ease-out hover:-translate-y-0.5 active:translate-y-0.5 ${
               active ? 'bg-primary text-on-primary' : 'text-muted hover:text-content'
             }`}
           >

@@ -10,7 +10,7 @@ export default function PixelButton({ href, variant = 'primary', icon, children 
       className={`pixel-btn pixel-btn--${variant}`}
     >
       {icon && <PixelIcon name={icon} />}
-      <span>{children}</span>
+      <span className="lang-fade">{children}</span>
     </a>
   )
 }

@@ -38,7 +38,8 @@ export default function Background() {
   }, [particles])
 
   return (
-    <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden" aria-hidden="true">
+    // fade-in: the whole background eases in slowly while the content reveals on top
+    <div className="fade-in pointer-events-none absolute inset-0 z-0 overflow-hidden" aria-hidden="true">
       {image && (
         <>
           <div

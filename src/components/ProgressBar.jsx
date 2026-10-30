@@ -40,7 +40,7 @@ export default function ProgressBar({
   return (
     <div>
       <div className="mb-4 flex items-center justify-between text-body">
-        <span className="text-muted">{label}</span>
+        <span className="lang-fade text-muted">{label}</span>
         {!indeterminate && showPercent && <span className="text-score">{Math.round(percent)}%</span>}
         {indeterminate && <span className="animate-pixel-blink text-primary">...</span>}
       </div>
