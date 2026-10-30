@@ -1,0 +1,275 @@
+@import "tailwindcss";
+
+/*
+ * Map Tailwind tokens to the runtime CSS variables set in lib/theme.js.
+ * "inline" makes utilities reference the variables directly.
+ */
+@theme inline {
+  --color-primary: var(--theme-primary);
+  --color-primary-dark: var(--theme-primary-dark);
+  --color-secondary: var(--theme-secondary);
+  --color-accent: var(--theme-accent);
+  --color-highlight: var(--theme-highlight);
+  --color-content: var(--theme-text);
+  --color-muted: var(--theme-muted);
+  --color-dim: var(--theme-dim);
+  --color-success: var(--theme-success);
+  --color-warning: var(--theme-warning);
+  --color-danger: var(--theme-danger);
+  --color-score: var(--theme-score);
+  --color-background: var(--theme-background);
+  --color-surface: var(--theme-surface);
+  --color-line: var(--theme-line);
+  --color-on-primary: var(--theme-on-primary);
+
+  /*
+   * Font sizes derived from the font's pixel grid (theme.config.js -> font).
+   * With pixelsPerEm 10 and scale 2: body 20px, lead 30px, title 40px, hero 60px, display 80px.
+   * All of them stay multiples of the grid, so the glyphs remain crisp.
+   */
+  --text-body: var(--theme-font-base);
+  --text-lead: calc(var(--theme-font-base) * 1.5);
+  --text-title: calc(var(--theme-font-base) * 2);
+  --text-hero: calc(var(--theme-font-base) * 3);
+  --text-display: calc(var(--theme-font-base) * 4);
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    min-height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--theme-background);
+    color: var(--theme-text);
+    font-family: var(--theme-font), ui-monospace, monospace;
+    font-size: var(--theme-font-base);
+    /* Keep the pixel font crisp */
+    -webkit-font-smoothing: none;
+    text-rendering: optimizeSpeed;
+  }
+
+  img {
+    image-rendering: pixelated;
+  }
+
+  ::selection {
+    background: var(--theme-primary);
+    color: var(--theme-on-primary);
+  }
+}
+
+@layer components {
+  /* ---------- Pixel box: notched 1-step border, no border-radius ---------- */
+  .pixel-box {
+    --b: var(--theme-pixel);
+    background: var(--theme-surface);
+    box-shadow:
+      0 calc(var(--b) * -1) 0 0 var(--theme-line),
+      0 var(--b) 0 0 var(--theme-line),
+      calc(var(--b) * -1) 0 0 0 var(--theme-line),
+      var(--b) 0 0 0 var(--theme-line);
+  }
+
+  /* ---------- Pixel button: Minecraft-like bevel ---------- */
+  .pixel-btn {
+    --b: var(--theme-pixel);
+    --btn-light: color-mix(in srgb, var(--btn-bg) 60%, white);
+    --btn-shade: color-mix(in srgb, var(--btn-bg) 70%, black);
+    --btn-edge: color-mix(in srgb, var(--btn-bg) 15%, black);
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    min-width: 240px;
+    padding: 16px 32px;
+    font-size: calc(var(--theme-font-base) * 1.5);
+    line-height: 1;
+    text-decoration: none;
+    background: var(--btn-bg);
+    color: var(--btn-fg);
+    box-shadow:
+      0 calc(var(--b) * -1) 0 0 var(--btn-edge),
+      0 var(--b) 0 0 var(--btn-edge),
+      calc(var(--b) * -1) 0 0 0 var(--btn-edge),
+      var(--b) 0 0 0 var(--btn-edge),
+      inset var(--b) var(--b) 0 0 var(--btn-light),
+      inset calc(var(--b) * -1) calc(var(--b) * -1) 0 0 var(--btn-shade);
+    transition: transform 80ms steps(2), filter 80ms steps(2);
+  }
+
+  .pixel-btn:hover {
+    filter: brightness(1.1);
+    transform: translateY(calc(var(--b) * -1));
+  }
+
+  .pixel-btn:active {
+    transform: translateY(var(--b));
+    box-shadow:
+      0 calc(var(--b) * -1) 0 0 var(--btn-edge),
+      0 var(--b) 0 0 var(--btn-edge),
+      calc(var(--b) * -1) 0 0 0 var(--btn-edge),
+      var(--b) 0 0 0 var(--btn-edge),
+      inset var(--b) var(--b) 0 0 var(--btn-shade),
+      inset calc(var(--b) * -1) calc(var(--b) * -1) 0 0 var(--btn-light);
+  }
+
+  .pixel-btn:focus-visible {
+    outline: var(--b) solid var(--theme-highlight);
+    outline-offset: calc(var(--b) * 2);
+  }
+
+  .pixel-btn--primary {
+    --btn-bg: var(--theme-primary);
+    --btn-fg: var(--theme-on-primary);
+  }
+  .pixel-btn--secondary {
+    --btn-bg: var(--theme-secondary);
+    --btn-fg: var(--theme-background);
+  }
+  .pixel-btn--accent {
+    --btn-bg: var(--theme-accent);
+    --btn-fg: var(--theme-background);
+  }
+  .pixel-btn--ghost {
+    --btn-bg: var(--theme-surface);
+    --btn-fg: var(--theme-text);
+  }
+
+  /* ---------- Two-tone pixel title with hard drop shadow ---------- */
+  .pixel-title {
+    background: linear-gradient(
+      180deg,
+      var(--theme-primary) 50%,
+      var(--theme-primary-dark) 50%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    filter: drop-shadow(
+      var(--theme-pixel) var(--theme-pixel) 0
+        color-mix(in srgb, var(--theme-primary-dark) 30%, black)
+    );
+  }
+
+  /* ---------- Progress segments ---------- */
+  .pixel-seg {
+    height: 24px;
+    background: color-mix(in srgb, var(--theme-line) 80%, black);
+    box-shadow: inset 0 calc(var(--theme-pixel) * -1) 0 0 rgb(0 0 0 / 0.35);
+  }
+
+  .pixel-seg[data-state='full'] {
+    background: var(--theme-primary);
+    box-shadow:
+      inset 0 var(--theme-pixel) 0 0 color-mix(in srgb, var(--theme-primary) 55%, white),
+      inset 0 calc(var(--theme-pixel) * -1) 0 0 var(--theme-primary-dark);
+  }
+
+  .pixel-seg[data-state='partial'] {
+    background: var(--theme-primary-dark);
+    animation: pixel-blink 1s steps(1) infinite;
+  }
+
+  /* ---------- Background ---------- */
+  .bg-grid {
+    background-image:
+      linear-gradient(to right, color-mix(in srgb, var(--theme-line) 70%, transparent) 1px, transparent 1px),
+      linear-gradient(to bottom, color-mix(in srgb, var(--theme-line) 70%, transparent) 1px, transparent 1px);
+    background-size: 32px 32px;
+    mask-image: radial-gradient(ellipse at center, black 25%, transparent 75%);
+  }
+
+  .bg-glow {
+    background: radial-gradient(
+      circle at 50% 35%,
+      color-mix(in srgb, var(--theme-primary) 14%, transparent),
+      transparent 60%
+    );
+  }
+
+  .pixel-particle {
+    position: absolute;
+    bottom: -16px;
+    opacity: 0;
+    animation-name: float-up;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+  }
+
+  /* ---------- Animations ---------- */
+  .animate-pixel-bob {
+    animation: pixel-bob 2.4s steps(4) infinite;
+  }
+
+  .animate-pixel-blink {
+    animation: pixel-blink 1s steps(1) infinite;
+  }
+
+  .tip-fade {
+    animation: pixel-fade 0.5s steps(4) both;
+  }
+}
+
+@keyframes pixel-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(calc(var(--theme-pixel) * -2));
+  }
+}
+
+@keyframes pixel-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0.3;
+  }
+}
+
+@keyframes pixel-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes float-up {
+  0% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  10%,
+  85% {
+    opacity: var(--p-opacity, 0.5);
+  }
+  100% {
+    transform: translateY(-110vh);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-pixel-bob,
+  .animate-pixel-blink,
+  .pixel-particle,
+  .pixel-seg[data-state='partial'],
+  .tip-fade {
+    animation: none;
+  }
+
+  .pixel-particle {
+    opacity: 0.2;
+  }
+}
